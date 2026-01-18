@@ -19,7 +19,7 @@ def resource_path(relative_path):
 
 # --- FUNGSI PATH DATA USER (PERSISTENT) ---
 def get_data_path(filename):
-    app_data = os.getenv('APPDATA') # C:\Users\Nama\AppData\Roaming
+    app_data = os.getenv('APPDATA') 
     data_dir = os.path.join(app_data, "ROGMusicPlayer")
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
@@ -36,9 +36,9 @@ class SpotifyCloneROG:
         self.path_assets = resource_path("assets")
         self.path_ffmpeg = resource_path("ffmpeg.exe") 
         self.path_playlist_json = get_data_path("user_playlists.json")
-        self.path_settings_json = get_data_path("settings.json") # File Pengaturan
+        self.path_settings_json = get_data_path("settings.json")
 
-        # --- LOAD SETTINGS DULU ---
+        # --- LOAD SETTINGS ---
         self.settings = self.load_settings()
         
         # Set Library Path dari Settings
@@ -72,7 +72,7 @@ class SpotifyCloneROG:
         self.show_home()
         self.update_timer()
         
-        # Set Volume Awal sesuai Settings
+        # Set Volume Awal
         start_vol = self.settings.get("default_volume", 80)
         self.player.audio_set_volume(start_vol)
         self.vol_slider.set(start_vol)
@@ -82,7 +82,7 @@ class SpotifyCloneROG:
         self.root.bind("<Right>", self.on_key_right)
         self.root.bind("<Left>", self.on_key_left)
 
-    # --- SETTINGS SYSTEM (BARU) ---
+    # --- SETTINGS SYSTEM ---
     def load_settings(self):
         default_settings = {
             "download_path": os.path.join(os.path.expanduser("~/Music"), "ROG_Library"),
@@ -92,7 +92,6 @@ class SpotifyCloneROG:
             try:
                 with open(self.path_settings_json, 'r') as f:
                     data = json.load(f)
-                    # Merge dengan default biar gak error kalau ada key baru
                     default_settings.update(data)
                     return default_settings
             except: pass
@@ -106,20 +105,10 @@ class SpotifyCloneROG:
         folder_selected = filedialog.askdirectory()
         if folder_selected:
             self.settings["download_path"] = folder_selected
-            self.path_library = folder_selected # Update path aktif
+            self.path_library = folder_selected
             self.save_settings()
-            
-            # Refresh UI Settings
             self.show_settings()
             messagebox.showinfo("Berhasil", f"Lokasi penyimpanan diubah ke:\n{folder_selected}")
-
-    def save_volume_setting(self, val):
-        vol = int(float(val))
-        self.player.audio_set_volume(vol)
-        # Update setting hanya saat dilepas (agar tidak spam write file) - opsional
-        # Disini kita simpan variabelnya saja, save ke file nanti saat close atau menu
-        self.settings["default_volume"] = vol
-        self.save_settings()
 
     # --- LOGIKA KEYBOARD ---
     def on_key_space(self, event):
@@ -231,7 +220,7 @@ class SpotifyCloneROG:
         self.btn_nav("🏠  Home", self.show_home)
         self.btn_nav("🔍  Cari Lagu", self.show_search)
         self.btn_nav("📂  My Playlists", self.show_library)
-        self.btn_nav("⚙️  Settings", self.show_settings) # MENU BARU
+        self.btn_nav("⚙️  Settings", self.show_settings) 
 
         tk.Label(self.sidebar, text="INFO / LYRICS:", fg="gray", bg=self.col_sidebar, 
                  font=("Arial", 9, "bold")).pack(pady=(30, 5), padx=20, anchor="w")
@@ -264,6 +253,7 @@ class SpotifyCloneROG:
         btn.pack(fill="x", pady=5)
 
     def setup_player_controls(self):
+        # Kiri
         left_box = tk.Frame(self.player_bar, bg=self.col_player)
         left_box.pack(side="left", padx=20)
         self.lbl_track = tk.Label(left_box, text="Ready", bg=self.col_player, fg="white", font=("Arial", 11, "bold"))
@@ -271,6 +261,7 @@ class SpotifyCloneROG:
         self.lbl_timer = tk.Label(left_box, text="--:-- / --:--", bg=self.col_player, fg=self.col_accent, font=("Consolas", 10))
         self.lbl_timer.pack(anchor="w")
         
+        # Tengah
         ctrl_frame = tk.Frame(self.player_bar, bg=self.col_player)
         ctrl_frame.pack(side="left", expand=True, fill="x")
         center_box = tk.Frame(ctrl_frame, bg=self.col_player)
@@ -289,11 +280,16 @@ class SpotifyCloneROG:
         self.btn_play.pack(side="left", padx=10)
         tk.Button(center_box, text="⏩", command=lambda: self.skip_time(10), bg=self.col_player, fg="white", bd=0, font=("Arial", 12, "bold")).pack(side="left", padx=5)
 
+        # Kanan (FIXED VOLUME SLIDER)
         right_box = tk.Frame(self.player_bar, bg=self.col_player)
         right_box.pack(side="right", padx=20)
         tk.Label(right_box, text="Vol", bg=self.col_player, fg="gray").pack(side="left", padx=(0,5))
-        self.vol_slider = ttk.Scale(right_box, from_=0, to=100, orient="horizontal", command=self.save_volume_setting)
+        
+        # SLIDER VOLUME (DIPERBAIKI)
+        self.vol_slider = ttk.Scale(right_box, from_=0, to=100, orient="horizontal", command=self.set_volume)
         self.vol_slider.set(80) 
+        self.vol_slider.pack(side="left", padx=5) # <--- INI YG TADI KETINGGALAN
+
         self.btn_dl = tk.Button(right_box, text="⬇ MP3", command=self.start_download, 
                                 bg=self.col_player, fg=self.col_text_sec, font=("Arial", 8, "bold"), bd=0, state="disabled")
         self.btn_dl.pack(side="left", padx=15)
@@ -301,16 +297,14 @@ class SpotifyCloneROG:
     def clear_main_area(self):
         for widget in self.main_area.winfo_children(): widget.destroy()
 
-    # --- HALAMAN SETTINGS (BARU) ---
+    # --- HALAMAN SETTINGS ---
     def show_settings(self):
         self.clear_main_area()
         tk.Label(self.main_area, text="Pengaturan / Settings", bg=self.col_bg, fg="white", font=("Arial", 32, "bold")).pack(padx=40, pady=40, anchor="w")
         
-        # Container Settings
         setting_frame = tk.Frame(self.main_area, bg=self.col_bg)
         setting_frame.pack(padx=40, anchor="w", fill="x")
 
-        # 1. Folder Penyimpanan
         tk.Label(setting_frame, text="📂 Folder Penyimpanan (Download):", bg=self.col_bg, fg=self.col_accent, font=("Arial", 14, "bold")).pack(anchor="w", pady=(0, 5))
         
         path_box = tk.Frame(setting_frame, bg="#222", padx=10, pady=10)
@@ -321,9 +315,8 @@ class SpotifyCloneROG:
         
         tk.Label(setting_frame, text="* Lagu yang didownload akan otomatis masuk ke folder di atas.", bg=self.col_bg, fg="gray").pack(anchor="w")
 
-        # 2. Volume Default (Info)
         tk.Label(setting_frame, text="🔊 Default Volume:", bg=self.col_bg, fg=self.col_accent, font=("Arial", 14, "bold")).pack(anchor="w", pady=(20, 5))
-        tk.Label(setting_frame, text="Volume akan otomatis tersimpan setiap kali Anda menggeser slider volume.", bg=self.col_bg, fg="gray").pack(anchor="w")
+        tk.Label(setting_frame, text="Atur volume lewat slider di kanan bawah (Otomatis tersimpan di memori saat aplikasi berjalan).", bg=self.col_bg, fg="gray").pack(anchor="w")
 
     def show_home(self):
         self.clear_main_area()
@@ -380,7 +373,6 @@ class SpotifyCloneROG:
         self.lbl_lib_header = tk.Label(self.main_area, text="My Playlists & Files", bg=self.col_bg, fg="white", font=("Arial", 20, "bold"))
         self.lbl_lib_header.pack(padx=30, pady=(20, 10), anchor="w")
         
-        # Tampilkan path aktif
         tk.Label(self.main_area, text=f"📂 Sumber File Offline: {self.path_library}", bg=self.col_bg, fg="gray", font=("Arial", 9)).pack(padx=30, anchor="w", pady=(0, 10))
 
         list_frame = tk.Frame(self.main_area, bg=self.col_bg)
@@ -473,7 +465,6 @@ class SpotifyCloneROG:
         self.lib_list.insert(tk.END, "--- FILE OFFLINE ---")
         self.lib_list.itemconfig(tk.END, {'fg': '#00FF00'})
         
-        # BACA FILE DARI PATH YANG DIPILIH DI SETTINGS
         if os.path.exists(self.path_library):
             for f in os.listdir(self.path_library):
                 if f.endswith(".mp3"): self.lib_list.insert(tk.END, f"🎵 {f}")
@@ -514,7 +505,6 @@ class SpotifyCloneROG:
             return
 
     def play_offline_file(self, filename):
-        # Play dari path library yang aktif
         path = os.path.join(self.path_library, filename)
         self.player.stop()
         self.current_song_data = {"title": filename, "url": ""}
@@ -584,7 +574,10 @@ class SpotifyCloneROG:
             self.player.set_time(new_time)
 
     def set_volume(self, val):
-        self.player.audio_set_volume(int(float(val)))
+        vol = int(float(val))
+        self.player.audio_set_volume(vol)
+        # Update setting di memori
+        self.settings["default_volume"] = vol
 
     def update_timer(self):
         if self.is_playing and self.is_looping:
@@ -610,7 +603,6 @@ class SpotifyCloneROG:
         threading.Thread(target=self.worker_download, daemon=True).start()
 
     def worker_download(self):
-        # GUNAKAN PATH LIBRARY DARI SETTINGS
         target_path = self.path_library 
         if not os.path.exists(target_path): os.makedirs(target_path)
 

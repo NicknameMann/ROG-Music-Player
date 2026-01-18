@@ -4,7 +4,7 @@
 [Setup]
 ; --- INFO APLIKASI ---
 AppName=ROG Music Player
-AppVersion=1.1
+AppVersion=1.1 [Fix]
 AppPublisher=Rafi Engineer
 AppPublisherURL=https://github.com/rafiproject
 DefaultDirName={autopf}\ROG Music Player
@@ -12,7 +12,7 @@ DefaultGroupName=ROG Music Player
 
 ; --- OUTPUT FILE ---
 ; Nama file installer nanti: ROG_Music_Player_Setup_v1.1.exe
-OutputBaseFilename=ROG_Music_Player_Setup_v1.1
+OutputBaseFilename=ROG_Music_Player_Setup_v1.1_Fix
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
