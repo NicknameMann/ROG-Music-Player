@@ -1,0 +1,13 @@
+# Abaikan folder build sampah
+build/
+dist/
+__pycache__/
+*.spec
+
+# Abaikan file installer besar (nanti kita upload di menu Releases saja)
+*.exe
+Output/
+
+# Abaikan environment python (jika ada)
+venv/
+env/
