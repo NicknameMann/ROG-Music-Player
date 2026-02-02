@@ -29,7 +29,7 @@ def get_data_path(filename):
 class SpotifyCloneROG:
     def __init__(self, root):
         self.root = root
-        self.root.title("Rafi's ROG Player v1.3")
+        self.root.title("Rafi's ROG Player v1.3 (Fixed)")
         self.root.geometry("1100x750")
         self.root.configure(bg="#121212")
 
@@ -76,7 +76,7 @@ class SpotifyCloneROG:
         # --- DICTIONARY BAHASA ---
         self.LANG = {
             "en": {
-                "welcome": "Welcome to ROG Music Player", "nav_home": "🏠  Home", "nav_search": "🔍  Search Song",
+                "welcome": "Welcome to ROG Music", "nav_home": "🏠  Home", "nav_search": "🔍  Search Song",
                 "nav_lib": "📂  My Playlists", "nav_set": "⚙️  Settings", "back": "⬅ BACK",
                 "lyrics": "INFO / LYRICS:", "ready": "Ready", "stopped": "Stopped",
                 "home_title": "ROG Music Player (v1.3)", "search_title": "Search Song (YouTube)",
@@ -87,13 +87,13 @@ class SpotifyCloneROG:
                 "pl_success": "Saved to {}", "folder_title": "📂 Download Folder:", "change_btn": "Change Folder",
                 "vol_title": "🔊 Default Volume:", "vol_desc": "Automatically saved.", "lang_title": "🌐 Language:",
                 "lang_desc": "Select language.", "source_file": "📂 Source:", "menu_play": "▶ Play Now",
-                "menu_save": "➕ Save to Playlist", "menu_dl": "⬇ Download", "search_lib_hint": "🔍 Filter...",
+                "menu_save": "➕ Save to Playlist", "menu_dl": "⬇ Download MP3", "search_lib_hint": "🔍 Filter...",
                 "tut_autoplay": "Auto-Play Active", "tut_settings": "Settings", "tut_space": "Space: Play/Pause",
-                "tut_right": "Right: Skip 10s", "tut_left": "Left: Rewind 10s", "tut_rclick": "Right Click Menu",
+                "tut_right": "Right: Skip 10s", "tut_left": "Left: Rewind 10s", "tut_rclick": "Right Click: Options",
                 "tut_3dots": "Options", "tut_dl": "Download MP3", "err_stream": "❌ Buffer Error (Skip)"
             },
             "id": {
-                "welcome": "Selamat Datang ROG Musik Player", "nav_home": "🏠  Beranda", "nav_search": "🔍  Cari Lagu",
+                "welcome": "Selamat Datang di ROG Musik", "nav_home": "🏠  Beranda", "nav_search": "🔍  Cari Lagu",
                 "nav_lib": "📂  Koleksi Saya", "nav_set": "⚙️  Pengaturan", "back": "⬅ KEMBALI",
                 "lyrics": "INFO / LIRIK:", "ready": "Siap", "stopped": "Berhenti",
                 "home_title": "ROG Music Player (v1.3)", "search_title": "Cari Lagu (YouTube)",
@@ -108,12 +108,11 @@ class SpotifyCloneROG:
                 "source_file": "📂 Sumber Folder:",
                 "menu_play": "▶ Putar Sekarang",
                 "menu_save": "➕ Simpan ke Playlist",
-                "menu_dl": "⬇ Download",
-                "search_lib_hint": "🔍 Cari...",
+                "menu_dl": "⬇ Download MP3", "search_lib_hint": "🔍 Cari...",
                 "tut_autoplay": "Search: Auto Acak. Playlist: Auto Lanjut.",
                 "tut_settings": "Atur lokasi simpan & bahasa.",
                 "tut_space": "Spasi: Putar/Jeda",
-                "tut_right": "Kanan: Maju 10dtk", "tut_left": "Kiri: Mundur 10dtk", "tut_rclick": "Klik Kanan: Menu",
+                "tut_right": "Kanan: Maju 10dtk", "tut_left": "Kiri: Mundur 10dtk", "tut_rclick": "Klik Kanan: Opsi",
                 "tut_3dots": "Opsi", "tut_dl": "Download MP3", "err_stream": "❌ Gagal Buffer (Lewati)"
             }
         }
@@ -128,18 +127,14 @@ class SpotifyCloneROG:
         self.player.audio_set_volume(start_vol)
         self.vol_slider.set(start_vol)
 
-        # [FIX v2.3] SHORTCUT KEYBOARD DIJAMIN AKTIF
-        # Binding ke Root window (Global di aplikasi ini)
         self.root.bind("<space>", self.on_key_space)
         self.root.bind("<Right>", self.on_key_right)
         self.root.bind("<Left>", self.on_key_left)
         
-        # Fokus ke window utama saat mulai agar shortcut langsung jalan
         self.root.focus_set()
 
-    # --- FUNGSI SHORTCUT (FIXED) ---
+    # --- FUNGSI SHORTCUT ---
     def on_key_space(self, event):
-        # Jangan play/pause jika sedang mengetik di kolom search
         if isinstance(event.widget, tk.Entry): return
         self.play_pause_music()
 
@@ -170,8 +165,6 @@ class SpotifyCloneROG:
         target_func()
         if self.page_history: self.btn_back_ui.config(state="normal", fg="white")
         else: self.btn_back_ui.config(state="disabled", fg="#333")
-        
-        # [FIX] Kembalikan fokus ke window utama agar shortcut jalan
         self.root.focus_set()
 
     def go_back(self):
@@ -180,7 +173,7 @@ class SpotifyCloneROG:
         self.current_page_func = prev_page
         prev_page()
         if not self.page_history: self.btn_back_ui.config(state="disabled", fg="#333")
-        self.root.focus_set() # Fix Focus
+        self.root.focus_set()
 
     def handle_song_finish(self):
         if self.is_looping:
@@ -242,7 +235,13 @@ class SpotifyCloneROG:
         self.player_bar = tk.Frame(self.root, bg=self.col_player, height=100, borderwidth=1, relief="ridge")
         self.player_bar.grid(row=1, column=0, columnspan=2, sticky="ew"); self.player_bar.pack_propagate(False)
         self.setup_player_controls()
+        
+        # [FITUR MENU DITAMBAHKAN DISINI]
         self.context_menu = tk.Menu(self.root, tearoff=0, bg="#333", fg="white")
+        self.context_menu.add_command(label="▶ Play", command=self.play_context_song)
+        self.context_menu.add_command(label="➕ Save to Playlist", command=self.save_context_song)
+        self.context_menu.add_separator()
+        self.context_menu.add_command(label="⬇ Download MP3", command=self.download_context_song)
         
     def setup_sidebar(self):
         self.sidebar = tk.Frame(self.root, bg=self.col_sidebar, width=280)
@@ -331,9 +330,13 @@ class SpotifyCloneROG:
         self.sf.bind("<Configure>", lambda e: self.cv.configure(scrollregion=self.cv.bbox("all")))
         self.cv.create_window((0,0), window=self.sf, anchor="nw"); self.cv.configure(yscrollcommand=sb.set)
         self.cv.pack(side="left", fill="both", expand=True); sb.pack(side="right", fill="y")
-        self.context_menu.entryconfigure(0, label=self.tr("menu_play")); self.context_menu.entryconfigure(1, label=self.tr("menu_save")); self.context_menu.entryconfigure(2, label=self.tr("menu_dl"))
+        
+        # [FITUR TAMBAHAN] UPDATE LABEL MENU SESUAI BAHASA
+        self.context_menu.entryconfigure(0, label=self.tr("menu_play"))
+        self.context_menu.entryconfigure(1, label=self.tr("menu_save"))
+        self.context_menu.entryconfigure(3, label=self.tr("menu_dl"))
+        
         if self.search_results: self.update_search_ui()
-        # Disini kita TIDAK set focus ke root agar user bisa langsung ketik di kolom search
 
     def show_library(self):
         self.clear_main_area()
@@ -394,10 +397,18 @@ class SpotifyCloneROG:
             r = tk.Frame(self.sf, bg=self.col_bg, pady=5); r.pack(fill="x")
             l = tk.Label(r, text=f"▶ {item.get('title')}", bg=self.col_bg, fg="white", font=("Arial", 11), cursor="hand2", anchor="w")
             l.pack(side="left", fill="x", expand=True, padx=5)
+            
+            # [FITUR TAMBAHAN] Bind Klik Kanan
             l.bind("<Button-1>", lambda e, x=i: self.play_specific_index(x))
             l.bind("<Button-3>", lambda e, d=item: self.open_context_menu(e, d))
             l.bind("<Enter>", lambda e, w=l: w.config(fg=self.col_accent)); l.bind("<Leave>", lambda e, w=l: w.config(fg="white"))
-            tk.Button(r, text="⋮", command=lambda d=item: self.open_save_dialog_direct(d), bg="#333", fg="white", bd=0).pack(side="right", padx=5)
+            
+            # [FITUR TAMBAHAN] Tombol Titik 3 -> Buka Menu
+            btn_opt = tk.Button(r, text="⋮", bg="#333", fg="white", bd=0)
+            btn_opt.pack(side="right", padx=5)
+            # Dulu: open_save_dialog_direct -> Sekarang: open_context_menu
+            btn_opt.bind("<Button-1>", lambda e, d=item: self.open_context_menu(e, d))
+            
             tk.Frame(self.sf, bg="#333", height=1).pack(fill="x")
 
     def play_specific_index(self, index):
@@ -459,8 +470,13 @@ class SpotifyCloneROG:
         if self.lbl_status and self.lbl_status.winfo_exists(): self.lbl_status.config(text=f"Playing: {title}", fg="#00FF00")
         self.root.focus_set() # Pastikan fokus kembali ke app agar shortcut jalan
 
+    # [FITUR TAMBAHAN] FUNGSI UNTUK MENU KLIK KANAN
     def open_save_dialog_direct(self, d): self.open_save_dialog({"title": d['title'], "url": d['url']})
-    def open_context_menu(self, e, d): self.context_song_data={"title":d['title'],"url":d['url']}; self.context_menu.post(e.x_root, e.y_root)
+    def open_context_menu(self, e, d): 
+        self.context_song_data={"title":d['title'],"url":d['url']}
+        # Tampilkan menu di posisi kursor mouse
+        self.context_menu.post(e.x_root, e.y_root)
+        
     def play_context_song(self): 
         if self.context_song_data: self.start_play_process(self.context_song_data)
     def save_context_song(self):
