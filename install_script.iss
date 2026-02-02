@@ -6,7 +6,7 @@
 ; Jangan ubah AppId ini agar fitur update/uninstall berjalan lancar
 AppId={{A1B2C3D4-E5F6-9012-3456-7890ABCDEF12}
 AppName=ROG Music Player
-AppVersion=1.3
+AppVersion=1.3.1
 AppPublisher=Baraendra Rafi
 AppPublisherURL=https://github.com/rafiproject
 
@@ -21,7 +21,7 @@ DisableDirPage=no
 DisableProgramGroupPage=no
 
 ; --- OUTPUT FILE ---
-OutputBaseFilename=ROG_Music_Player_Setup_v1.3_Fixed
+OutputBaseFilename=ROG_Music_Player_Setup_v1.3.1
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

@@ -8,9 +8,9 @@ import vlc
 import threading
 import time
 import json
-import random
+import random # Penting untuk membuat nama file unik (Anti-Error 416)
 
-# --- FUNGSI RESOURCE PATH ---
+# --- FUNGSI RESOURCE PATH (Agar aset terbaca saat jadi EXE) ---
 def resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -18,7 +18,7 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
-# --- FUNGSI PATH DATA USER ---
+# --- FUNGSI PATH DATA USER (Menyimpan playlist & cache di AppData) ---
 def get_data_path(filename):
     app_data = os.getenv('APPDATA') 
     data_dir = os.path.join(app_data, "ROGMusicPlayer")
@@ -29,30 +29,37 @@ def get_data_path(filename):
 class SpotifyCloneROG:
     def __init__(self, root):
         self.root = root
-        self.root.title("Rafi's ROG Player v1.3 (Fixed)")
+        self.root.title("Rafi's ROG Player v1.3.1")
         self.root.geometry("1100x750")
         self.root.configure(bg="#121212")
 
-        # --- PATHS ---
+        # --- PATHS (Lokasi File) ---
         self.path_assets = resource_path("assets")
         self.path_ffmpeg = resource_path("ffmpeg.exe") 
+        
+        # [PENTING] Tambahkan ffmpeg ke sistem PATH agar yt-dlp lancar
+        project_dir = os.path.dirname(os.path.abspath(__file__))
+        os.environ["PATH"] += os.pathsep + project_dir
+
         self.path_playlist_json = get_data_path("user_playlists.json")
         self.path_settings_json = get_data_path("settings.json")
         self.path_cache = get_data_path("cache")
+        
+        # Buat folder cache jika belum ada
         if not os.path.exists(self.path_cache): os.makedirs(self.path_cache)
 
-        # --- LOAD SETTINGS ---
+        # --- LOAD SETTINGS (Pengaturan User) ---
         self.settings = self.load_settings()
         self.current_lang = self.settings.get("language", "en") 
         self.path_library = self.settings.get("download_path", os.path.join(os.path.expanduser("~/Music"), "ROG_Library"))
         if not os.path.exists(self.path_library): os.makedirs(self.path_library)
 
-        # --- DATABASE & VLC ---
+        # --- DATABASE & VLC PLAYER ---
         self.playlists = self.load_playlists()
         self.instance = vlc.Instance()
         self.player = self.instance.media_player_new()
         
-        # --- VARIABLES ---
+        # --- VARIABLES (Status Aplikasi) ---
         self.current_song_data = {} 
         self.search_results = [] 
         self.is_playing = False
@@ -65,21 +72,21 @@ class SpotifyCloneROG:
         self.active_index = -1     
         self.active_source = None  
 
-        # --- COLORS ---
+        # --- COLORS (Tema ROG) ---
         self.col_bg = "#121212"
         self.col_sidebar = "#000000"
         self.col_player = "#181818"
-        self.col_accent = "#FF0000"
+        self.col_accent = "#FF0000" # Merah ROG
         self.col_text = "#FFFFFF"
         self.col_text_sec = "#B3B3B3"
 
-        # --- DICTIONARY BAHASA ---
+        # --- KAMUS BAHASA ---
         self.LANG = {
             "en": {
                 "welcome": "Welcome to ROG Music", "nav_home": "🏠  Home", "nav_search": "🔍  Search Song",
                 "nav_lib": "📂  My Playlists", "nav_set": "⚙️  Settings", "back": "⬅ BACK",
                 "lyrics": "INFO / LYRICS:", "ready": "Ready", "stopped": "Stopped",
-                "home_title": "ROG Music Player (v1.3)", "search_title": "Search Song (YouTube)",
+                "home_title": "ROG Music Player (v1.3.1)", "search_title": "Search Song (YouTube)",
                 "lib_title": "Playlists & Files", "set_title": "Settings", "searching": "Searching...",
                 "found": "Found {} songs.", "loading": "🚀 Buffering...", "downloading": "DOWNLOADING...",
                 "dl_success": "Success", "dl_msg": "Song downloaded to:", "save_title": "Save Song",
@@ -89,14 +96,14 @@ class SpotifyCloneROG:
                 "lang_desc": "Select language.", "source_file": "📂 Source:", "menu_play": "▶ Play Now",
                 "menu_save": "➕ Save to Playlist", "menu_dl": "⬇ Download MP3", "search_lib_hint": "🔍 Filter...",
                 "tut_autoplay": "Auto-Play Active", "tut_settings": "Settings", "tut_space": "Space: Play/Pause",
-                "tut_right": "Right: Skip 10s", "tut_left": "Left: Rewind 10s", "tut_rclick": "Right Click: Options",
+                "tut_right": "Right: Skip 10s", "tut_left": "Left: Rewind 10s", "tut_rclick": "Right Click Menu",
                 "tut_3dots": "Options", "tut_dl": "Download MP3", "err_stream": "❌ Buffer Error (Skip)"
             },
             "id": {
                 "welcome": "Selamat Datang di ROG Musik", "nav_home": "🏠  Beranda", "nav_search": "🔍  Cari Lagu",
                 "nav_lib": "📂  Koleksi Saya", "nav_set": "⚙️  Pengaturan", "back": "⬅ KEMBALI",
                 "lyrics": "INFO / LIRIK:", "ready": "Siap", "stopped": "Berhenti",
-                "home_title": "ROG Music Player (v1.3)", "search_title": "Cari Lagu (YouTube)",
+                "home_title": "ROG Music Player (v1.3.1)", "search_title": "Cari Lagu (YouTube)",
                 "lib_title": "Playlist & File Offline", "set_title": "Pengaturan", "searching": "Sedang mencari...",
                 "found": "Ditemukan {} lagu.", "loading": "🚀 Menyiapkan...", "downloading": "MENGUNDUH...",
                 "dl_success": "Berhasil", "dl_msg": "Lagu berhasil diunduh ke:", "save_title": "Simpan Lagu",
@@ -108,29 +115,31 @@ class SpotifyCloneROG:
                 "source_file": "📂 Sumber Folder:",
                 "menu_play": "▶ Putar Sekarang",
                 "menu_save": "➕ Simpan ke Playlist",
-                "menu_dl": "⬇ Download MP3", "search_lib_hint": "🔍 Cari...",
+                "menu_dl": "⬇ Download MP3",
+                "search_lib_hint": "🔍 Cari...",
                 "tut_autoplay": "Search: Auto Acak. Playlist: Auto Lanjut.",
                 "tut_settings": "Atur lokasi simpan & bahasa.",
                 "tut_space": "Spasi: Putar/Jeda",
-                "tut_right": "Kanan: Maju 10dtk", "tut_left": "Kiri: Mundur 10dtk", "tut_rclick": "Klik Kanan: Opsi",
+                "tut_right": "Kanan: Maju 10dtk", "tut_left": "Kiri: Mundur 10dtk", "tut_rclick": "Klik Kanan: Menu",
                 "tut_3dots": "Opsi", "tut_dl": "Download MP3", "err_stream": "❌ Gagal Buffer (Lewati)"
             }
         }
 
-        # --- UI INIT ---
+        # --- UI INITIALIZATION ---
         self.setup_layout()
         self.current_page_func = self.show_home
         self.show_home()
         self.update_timer() 
         
+        # Set Volume Awal
         start_vol = self.settings.get("default_volume", 80)
         self.player.audio_set_volume(start_vol)
         self.vol_slider.set(start_vol)
 
+        # [SHORTCUT KEYBOARD]
         self.root.bind("<space>", self.on_key_space)
         self.root.bind("<Right>", self.on_key_right)
         self.root.bind("<Left>", self.on_key_left)
-        
         self.root.focus_set()
 
     # --- FUNGSI SHORTCUT ---
@@ -146,7 +155,7 @@ class SpotifyCloneROG:
         if isinstance(event.widget, tk.Entry): return
         self.skip_time(-10)
 
-    # --- HELPER FUNCTIONS ---
+    # --- HELPER LAINNYA ---
     def tr(self, key):
         return self.LANG[self.current_lang].get(key, key)
 
@@ -175,6 +184,7 @@ class SpotifyCloneROG:
         if not self.page_history: self.btn_back_ui.config(state="disabled", fg="#333")
         self.root.focus_set()
 
+    # --- LOGIKA PLAYER: FINISH & ERROR ---
     def handle_song_finish(self):
         if self.is_looping:
             self.player.stop(); self.player.play()
@@ -196,8 +206,9 @@ class SpotifyCloneROG:
         print("Play Error. Skipping...")
         if self.lbl_status and self.lbl_status.winfo_exists():
             self.lbl_status.config(text=self.tr("err_stream"), fg="red")
-        self.root.after(3000, self.handle_song_finish)
+        self.root.after(2000, self.handle_song_finish)
 
+    # --- PENGATURAN (JSON) ---
     def load_settings(self):
         default = {"download_path": os.path.join(os.path.expanduser("~/Music"), "ROG_Library"), "default_volume": 80, "language": "en"}
         if os.path.exists(self.path_settings_json):
@@ -228,6 +239,7 @@ class SpotifyCloneROG:
     def save_playlists(self):
         with open(self.path_playlist_json, 'w') as f: json.dump(self.playlists, f)
 
+    # --- TAMPILAN UTAMA (LAYOUT) ---
     def setup_layout(self):
         self.root.columnconfigure(1, weight=1); self.root.rowconfigure(0, weight=1)
         self.setup_sidebar()
@@ -236,12 +248,8 @@ class SpotifyCloneROG:
         self.player_bar.grid(row=1, column=0, columnspan=2, sticky="ew"); self.player_bar.pack_propagate(False)
         self.setup_player_controls()
         
-        # [FITUR MENU DITAMBAHKAN DISINI]
-        self.context_menu = tk.Menu(self.root, tearoff=0, bg="#333", fg="white")
-        self.context_menu.add_command(label="▶ Play", command=self.play_context_song)
-        self.context_menu.add_command(label="➕ Save to Playlist", command=self.save_context_song)
-        self.context_menu.add_separator()
-        self.context_menu.add_command(label="⬇ Download MP3", command=self.download_context_song)
+        # --- MENU KONTEKS (Klik Kanan & Titik 3) ---
+        self.context_menu = tk.Menu(self.root, tearoff=0, bg="#333", fg="white", font=("Arial", 10))
         
     def setup_sidebar(self):
         self.sidebar = tk.Frame(self.root, bg=self.col_sidebar, width=280)
@@ -266,7 +274,10 @@ class SpotifyCloneROG:
         self.lbl_timer = tk.Label(left, text="--:-- / --:--", bg=self.col_player, fg=self.col_accent, font=("Consolas", 10)); self.lbl_timer.pack(anchor="w")
         center = tk.Frame(self.player_bar, bg=self.col_player); center.pack(side="left", expand=True)
         self.icon_play = self.load_img("play.png", (35, 35)); self.icon_pause = self.load_img("pause.png", (35, 35))
+        
+        # Tombol Save di player bar
         tk.Button(center, text="💾", command=lambda: self.open_save_dialog(None), bg=self.col_player, fg="white", bd=0, font=("Arial", 14)).pack(side="left", padx=15)
+        
         self.btn_loop = tk.Button(center, text="🔁", command=self.toggle_loop, bg=self.col_player, fg="gray", bd=0, font=("Arial", 12)); self.btn_loop.pack(side="left", padx=10)
         tk.Button(center, text="⏪", command=lambda: self.skip_time(-10), bg=self.col_player, fg="white", bd=0, font=("Arial", 12, "bold")).pack(side="left", padx=5)
         self.btn_play = tk.Button(center, image=self.icon_play, command=self.play_pause_music, bg=self.col_player, bd=0); self.btn_play.pack(side="left", padx=10)
@@ -286,6 +297,7 @@ class SpotifyCloneROG:
         except: pass
         return None
 
+    # --- HALAMAN: HOME ---
     def show_home(self):
         self.clear_main_area()
         tk.Label(self.main_area, text=self.tr("welcome"), bg=self.col_bg, fg="white", font=("Arial", 32, "bold")).pack(padx=40, pady=(40, 10), anchor="w")
@@ -298,6 +310,7 @@ class SpotifyCloneROG:
             tk.Label(row, text=desc, bg=self.col_bg, fg=self.col_text_sec, font=("Arial", 12)).pack(side="left")
         self.root.focus_set()
 
+    # --- HALAMAN: SETTINGS ---
     def show_settings(self):
         self.clear_main_area()
         tk.Label(self.main_area, text=self.tr("set_title"), bg=self.col_bg, fg="white", font=("Arial", 32, "bold")).pack(padx=40, pady=40, anchor="w")
@@ -315,6 +328,7 @@ class SpotifyCloneROG:
         tk.Label(f, text=self.tr("vol_desc"), bg=self.col_bg, fg="gray").pack(anchor="w")
         self.root.focus_set()
 
+    # --- HALAMAN: SEARCH ---
     def show_search(self):
         self.clear_main_area()
         self.lbl_status = tk.Label(self.main_area, text="", bg=self.col_bg, fg=self.col_text_sec)
@@ -331,13 +345,15 @@ class SpotifyCloneROG:
         self.cv.create_window((0,0), window=self.sf, anchor="nw"); self.cv.configure(yscrollcommand=sb.set)
         self.cv.pack(side="left", fill="both", expand=True); sb.pack(side="right", fill="y")
         
-        # [FITUR TAMBAHAN] UPDATE LABEL MENU SESUAI BAHASA
-        self.context_menu.entryconfigure(0, label=self.tr("menu_play"))
-        self.context_menu.entryconfigure(1, label=self.tr("menu_save"))
-        self.context_menu.entryconfigure(3, label=self.tr("menu_dl"))
+        # Reset Menu agar bersih
+        self.context_menu.delete(0, tk.END)
+        self.context_menu.add_command(label=self.tr("menu_play"), command=self.play_context_song)
+        self.context_menu.add_command(label=self.tr("menu_save"), command=self.save_context_song)
+        self.context_menu.add_command(label=self.tr("menu_dl"), command=self.download_context_song)
         
         if self.search_results: self.update_search_ui()
 
+    # --- HALAMAN: LIBRARY ---
     def show_library(self):
         self.clear_main_area()
         self.current_view_playlist = None 
@@ -368,9 +384,12 @@ class SpotifyCloneROG:
                 title = selection.replace("☁️ ", "")
                 songs = self.playlists.get(self.current_view_playlist, [])
                 song_data = next((s for s in songs if s['title'] == title), None)
-                if song_data: self.context_song_data = song_data; self.context_menu.post(event.x_root, event.y_root)
+                if song_data: 
+                    self.context_song_data = song_data
+                    self.context_menu.post(event.x_root, event.y_root)
         except: pass
 
+    # --- LOGIKA SEARCH ENGINE ---
     def search_online(self):
         q = self.entry_search.get()
         if not q: return
@@ -379,7 +398,12 @@ class SpotifyCloneROG:
         threading.Thread(target=self.worker_search, args=(q,), daemon=True).start()
 
     def worker_search(self, q):
-        ydl_opts = {'format': 'bestaudio/best', 'quiet': True, 'force_ipv4': True, 'extract_flat': True, 'no_warnings': True, 'ignoreerrors': True, 'nocheckcertificate': True}
+        # [ANTI-ERROR] Konfigurasi Search
+        ydl_opts = {
+            'format': 'bestaudio/best', 'quiet': True, 'force_ipv4': True, 'extract_flat': True, 
+            'no_warnings': True, 'ignoreerrors': True, 'nocheckcertificate': True,
+            'source_address': '0.0.0.0' # Fix IP
+        }
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 r = ydl.extract_info(f"ytsearch15:{q}", download=False)
@@ -397,16 +421,13 @@ class SpotifyCloneROG:
             r = tk.Frame(self.sf, bg=self.col_bg, pady=5); r.pack(fill="x")
             l = tk.Label(r, text=f"▶ {item.get('title')}", bg=self.col_bg, fg="white", font=("Arial", 11), cursor="hand2", anchor="w")
             l.pack(side="left", fill="x", expand=True, padx=5)
-            
-            # [FITUR TAMBAHAN] Bind Klik Kanan
             l.bind("<Button-1>", lambda e, x=i: self.play_specific_index(x))
             l.bind("<Button-3>", lambda e, d=item: self.open_context_menu(e, d))
             l.bind("<Enter>", lambda e, w=l: w.config(fg=self.col_accent)); l.bind("<Leave>", lambda e, w=l: w.config(fg="white"))
             
-            # [FITUR TAMBAHAN] Tombol Titik 3 -> Buka Menu
-            btn_opt = tk.Button(r, text="⋮", bg="#333", fg="white", bd=0)
+            # TOMBOL TITIK 3
+            btn_opt = tk.Button(r, text="⋮", bg="#333", fg="white", bd=0, font=("Arial", 10, "bold"))
             btn_opt.pack(side="right", padx=5)
-            # Dulu: open_save_dialog_direct -> Sekarang: open_context_menu
             btn_opt.bind("<Button-1>", lambda e, d=item: self.open_context_menu(e, d))
             
             tk.Frame(self.sf, bg="#333", height=1).pack(fill="x")
@@ -436,24 +457,51 @@ class SpotifyCloneROG:
         self.lbl_track.config(text=f"{self.tr('loading')}...")
         if self.lbl_status and self.lbl_status.winfo_exists(): self.lbl_status.config(text=self.tr("loading"), fg="yellow")
         self.current_song_data = {"title": data['title'], "url": data['url']}
-        # Kembalikan fokus ke root agar shortcut berfungsi saat buffering
         self.root.focus_set()
         threading.Thread(target=self.worker_buffer_and_play, args=(data['url'], data['title']), daemon=True).start()
 
+    # --- [PENTING] LOGIKA BUFFERING FIX (ANTI 416) ---
     def worker_buffer_and_play(self, url, title):
-        temp_filename = "temp_buffer_play.mp3"
+        # 1. Buat nama file acak agar tidak bentrok dengan file rusak (cache)
+        unique_id = random.randint(10000, 99999)
+        temp_filename = f"temp_play_{unique_id}.mp3"
         temp_path = os.path.join(self.path_cache, temp_filename)
-        if os.path.exists(temp_path):
-            try: os.remove(temp_path)
-            except: pass 
 
-        ydl_opts = {'format': 'bestaudio/best', 'outtmpl': os.path.join(self.path_cache, 'temp_buffer_play.%(ext)s'), 'ffmpeg_location': self.path_ffmpeg, 'postprocessors': [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3'}], 'quiet': True, 'no_warnings': True, 'nocheckcertificate': True}
+        # 2. Bersihkan file temp lama yang menumpuk di folder cache agar hemat storage
         try:
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl: ydl.download([url])
+            for f in os.listdir(self.path_cache):
+                if f.startswith("temp_play_") and f.endswith(".mp3"):
+                    try: os.remove(os.path.join(self.path_cache, f))
+                    except: pass
+        except: pass
+
+        # 3. Konfigurasi DOWNLOAD BARU (Memaksa download fresh)
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': os.path.join(self.path_cache, f'temp_play_{unique_id}.%(ext)s'),
+            'ffmpeg_location': self.path_ffmpeg,
+            'postprocessors': [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3'}],
+            'quiet': True,
+            'no_warnings': True,
+            'nocheckcertificate': True,
+            
+            # --- FIX UTAMA ERROR 416 ---
+            'source_address': '0.0.0.0',   # Paksa IPv4
+            'no_continue': True,           # Jangan Resume, selalu download baru
+            'force_generic_extractor': False,
+            'http_chunk_size': 10485760    # Stabilizer
+        }
+
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
+            
             if os.path.exists(temp_path):
                 self.root.after(0, lambda: self.play_local_file(temp_path, title))
-                self.root.after(0, lambda: self.update_lyrics_box(f"JUDUL: {title}\n\n[Playing Cached Audio]"))
-            else: self.root.after(0, self.handle_play_error)
+                self.root.after(0, lambda: self.update_lyrics_box(f"JUDUL: {title}\n\n[Playing Stream]"))
+            else:
+                self.root.after(0, self.handle_play_error)
+
         except Exception as e:
             print(f"Buffer Error: {e}")
             self.root.after(0, self.handle_play_error)
@@ -468,21 +516,23 @@ class SpotifyCloneROG:
         self.btn_play.config(image=self.icon_pause)
         self.btn_dl.config(state="normal", bg=self.col_accent)
         if self.lbl_status and self.lbl_status.winfo_exists(): self.lbl_status.config(text=f"Playing: {title}", fg="#00FF00")
-        self.root.focus_set() # Pastikan fokus kembali ke app agar shortcut jalan
+        self.root.focus_set() 
 
-    # [FITUR TAMBAHAN] FUNGSI UNTUK MENU KLIK KANAN
     def open_save_dialog_direct(self, d): self.open_save_dialog({"title": d['title'], "url": d['url']})
+    
+    # --- LOGIKA MENU KONTEKS ---
     def open_context_menu(self, e, d): 
         self.context_song_data={"title":d['title'],"url":d['url']}
-        # Tampilkan menu di posisi kursor mouse
         self.context_menu.post(e.x_root, e.y_root)
-        
+
     def play_context_song(self): 
         if self.context_song_data: self.start_play_process(self.context_song_data)
     def save_context_song(self):
         if self.context_song_data: self.open_save_dialog(self.context_song_data)
     def download_context_song(self):
-        if self.context_song_data: self.current_song_data = self.context_song_data; self.start_download()
+        if self.context_song_data: 
+            self.current_song_data = self.context_song_data
+            self.start_download()
 
     def open_save_dialog(self, target=None):
         song = target if target else self.current_song_data
@@ -566,7 +616,18 @@ class SpotifyCloneROG:
     
     def worker_download(self):
         p = self.path_library
-        ydl_opts = {'format': 'bestaudio/best', 'ffmpeg_location': self.path_ffmpeg, 'outtmpl': os.path.join(p,'%(title)s.%(ext)s'), 'postprocessors': [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3'}], 'quiet': True, 'no_warnings': True, 'ignoreerrors': True}
+        # [ANTI-ERROR] Konfigurasi Download
+        ydl_opts = {
+            'format': 'bestaudio/best', 
+            'ffmpeg_location': self.path_ffmpeg, 
+            'outtmpl': os.path.join(p,'%(title)s.%(ext)s'), 
+            'postprocessors': [{'key': 'FFmpegExtractAudio','preferredcodec': 'mp3'}], 
+            'quiet': True, 'no_warnings': True, 'ignoreerrors': True,
+            # --- FIX ERROR 416 ---
+            'source_address': '0.0.0.0',
+            'no_continue': True,
+            'http_chunk_size': 10485760
+        }
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl: ydl.download([self.current_song_data['url']])
             self.root.after(0, lambda: messagebox.showinfo(self.tr("dl_success"), f"{self.tr('dl_msg')}\n{p}"))
@@ -575,6 +636,9 @@ class SpotifyCloneROG:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    if os.path.exists("assets/icon_rog.ico"): root.iconbitmap("assets/icon_rog.ico")
+    # Pastikan icon ada atau lewati
+    if os.path.exists("assets/icon_rog.ico"): 
+        try: root.iconbitmap("assets/icon_rog.ico")
+        except: pass
     app = SpotifyCloneROG(root)
     root.mainloop()
